@@ -1,121 +1,137 @@
-import { TodoList } from "./core";
-import { Item } from "./core";
+import { TodoList } from "./core.ts";
 
 const todo = new TodoList();
+
 const port = 3000;
-type description = {description: string};
 
-const server = Bun.serve({
-  port: port,
-  async fetch(request: Request) {
+type BodyType = {
+  title: string;
+};
+
+Bun.serve({
+  port,
+
+  async fetch(request) {
     const url = new URL(request.url);
-    const method = request.method;
-    const pathname = url.pathname;
-    const searchParams = url.searchParams;
 
-    // GET /items - listar todos os itens
-    if (pathname === "/items" && method === "GET") {
-      const items = await todo.getItems();
-      const itemsData = items.map((item => item.toJSON());
-      return new Response(JSON.stringify(itemsData), {
-        headers: { "Content-Type": "application/json" }
+    const pathname = url.pathname;
+    const method = request.method;
+
+    // =========================
+    // FRONTEND FILES
+    // =========================
+
+    // index.html
+    if (pathname === "/") {
+      const file = Bun.file("./public/index.html");
+
+      return new Response(file, {
+        headers: {
+          "Content-Type": "text/html"
+        }
       });
     }
-    // POST /items - adicionar novo item
+
+    // main.js
+    if (pathname === "/main.js") {
+      const file = Bun.file("./public/main.js");
+
+      return new Response(file, {
+        headers: {
+          "Content-Type": "application/javascript"
+        }
+      });
+    }
+
+    // main.css
+    if (pathname === "/main.css") {
+      const file = Bun.file("./public/main.css");
+
+      return new Response(file, {
+        headers: {
+          "Content-Type": "text/css"
+        }
+      });
+    }
+
+    // =========================
+    // API
+    // =========================
+
+    // GET /items
+    if (pathname === "/items" && method === "GET") {
+      const items = todo.getItems();
+
+      return Response.json(items);
+    }
+
+    // POST /items
     if (pathname === "/items" && method === "POST") {
       try {
-        const body = await request.json() as description;
-        
-        const { description } = body ;
-        
-        if (!description) {
-          return new Response(JSON.stringify({ error: "Description is required" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" }
-          });
+        const body = await request.json() as BodyType;
+
+        if (!body.title) {
+          return Response.json(
+            { error: "Title is required" },
+            { status: 400 }
+          );
         }
 
-        const item = new Item(description);
-        await todo.addItem(item);
-        
-        return new Response(JSON.stringify({ message: "Item added successfully", item: item.toJSON() }), {
-          status: 201,
-          headers: { "Content-Type": "application/json" }
+        const item = todo.addItem(body.title);
+
+        return Response.json(item, {
+          status: 201
         });
-      } catch (error) {
-        return new Response(JSON.stringify({ error: "Failed to add item" }), {
-          status: 500,
-          headers: { "Content-Type": "application/json" }
-        });
+
+      } catch {
+        return Response.json(
+          { error: "Invalid body" },
+          { status: 500 }
+        );
       }
     }
 
-    // PUT /items?index=0 - atualizar item
-    if (pathname === "/items" && method === "PUT") {
+    // DELETE /items/:id
+    if (
+      pathname.startsWith("/items/")
+      && method === "DELETE"
+    ) {
+      const id = Number(pathname.split("/")[2]);
+
+      todo.removeItem(id);
+
+      return Response.json({
+        success: true
+      });
+    }
+
+    // PUT /items/:id
+    if (
+      pathname.startsWith("/items/")
+      && method === "PUT"
+    ) {
       try {
-        const index = parseInt(searchParams.get("index") || "");
-        
-        if (isNaN(index)) {
-          return new Response(JSON.stringify({ error: "Invalid index parameter" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" }
-          });
-        }
+        const id = Number(pathname.split("/")[2]);
 
-        const body = await request.json() as description;
-        const { description } = body;
+        const body = await request.json() as BodyType;
 
-        if (!description) {
-          return new Response(JSON.stringify({ error: "Description is required" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" }
-          });
-        }
+        const item = todo.updateItem(
+          id,
+          body.title
+        );
 
-        const item = new Item(description);
-        await todo.updateItem(index, item);
+        return Response.json(item);
 
-        return new Response(JSON.stringify({ message: "Item updated successfully", item: item.toJSON() }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
-        });
-      } catch (error) {
-        return new Response(JSON.stringify({ error: "Failed to update item" }), {
-          status: 500,
-          headers: { "Content-Type": "application/json" }
-        });
+      } catch {
+        return Response.json(
+          { error: "Failed to update item" },
+          { status: 500 }
+        );
       }
     }
 
-    // DELETE /items?index=0 - remover item
-    if (pathname === "/items" && method === "DELETE") {
-      try {
-        const index = parseInt(searchParams.get("index") || "");
-        
-        if (isNaN(index)) {
-          return new Response(JSON.stringify({ error: "Invalid index parameter" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" }
-          });
-        }
-
-        await todo.removeItem(index);
-        
-        return new Response(JSON.stringify({ message: "Item removed successfully" }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
-        });
-      } catch (error) {
-        return new Response(JSON.stringify({ error: "Failed to remove item" }), {
-          status: 500,
-          headers: { "Content-Type": "application/json" }
-        });
-      }
-    }
-
-    return new Response(JSON.stringify({ error: "Not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" }
+    return new Response("Not found", {
+      status: 404
     });
   }
 });

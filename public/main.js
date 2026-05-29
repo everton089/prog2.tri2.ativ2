@@ -1,60 +1,84 @@
-
-// Select DOM elements
 const app = document.querySelector('#app')
-const input = app.querySelector('#task-input')
-const addButton = app.querySelector('#add-button')
-const list = app.querySelector('#list')
-const itemTemplate = list.querySelector('template')
+const input = document.querySelector('#task-input')
+const addButton = document.querySelector('#add-button')
+const list = document.querySelector('#list')
+const itemTemplate = document.querySelector('template')
 
-// Save tasks to local storage
-function saveToLocalStorage() {
-  const tasks = []
-  list.querySelectorAll('li').forEach(li => {
-    const title = li.querySelector('.title').textContent
-    tasks.push(title)
+async function loadTasks() {
+
+  list.innerHTML = ''
+
+  const response = await fetch('/items')
+
+  const tasks = await response.json()
+
+  tasks.forEach(task => {
+
+    const element = createTaskElement(task)
+
+    list.appendChild(element)
   })
-  localStorage.setItem('tasks', JSON.stringify(tasks))
 }
 
-// Load tasks from local storage and add them to the list
-function loadFromLocalStorage() {
-  const tasks = JSON.parse(localStorage.getItem('tasks') || '[]')
-  tasks.forEach(title => {
-    const task = createDomTask(title)
-    list.appendChild(task)
-  })
+function createTaskElement(task) {
 
-  // const requisicao = await fetch("http://______/buscarDados")
-  // const tasks = await requisicao.json()
-  // tasks.forEach(title => {
-  //   const task = createDomTask(title)
-  //   list.appendChild(task)
-  // })
+  const clone =
+    itemTemplate.content.cloneNode(true)
+
+  clone.querySelector('.title').textContent =
+    task.title
+
+  clone
+    .querySelector('.bt-delete')
+    .addEventListener('click', async () => {
+
+      await fetch(`/items/${task.id}`, {
+        method: 'DELETE'
+      })
+
+      loadTasks()
+    })
+
+  return clone
 }
 
-// Create a DOM element for a task
-function createDomTask(title) {
-  const task = itemTemplate.content.cloneNode(true)
-  task.querySelector('.title').textContent = title
-  task.querySelector('.bt-delete').addEventListener('click', (e) => {
-    e.target.closest('li').remove()
-    saveToLocalStorage()
-  })
-  return task
-}
+async function createTask() {
 
-// Create a new task and add it to the list
-function createNewTask() {
   const title = input.value.trim()
+
   if (!title) return
-  const task = createDomTask(title)
-  list.appendChild(task)
+
+  await fetch('/items', {
+
+    method: 'POST',
+
+    headers: {
+      'Content-Type': 'application/json'
+    },
+
+    body: JSON.stringify({
+      title
+    })
+  })
 
   input.value = ''
-  saveToLocalStorage()
+
+  loadTasks()
 }
 
-// Event listeners
-addButton.addEventListener('click', createNewTask)
-input.addEventListener('keypress', (e) => (e.key === 'Enter' ? createNewTask() : null))
+addButton.addEventListener(
+  'click',
+  createTask
+)
 
+input.addEventListener(
+  'keypress',
+  (e) => {
+
+    if (e.key === 'Enter') {
+      createTask()
+    }
+  }
+)
+
+loadTasks()
