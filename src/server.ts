@@ -17,11 +17,6 @@ Bun.serve({
     const pathname = url.pathname;
     const method = request.method;
 
-    // =========================
-    // FRONTEND FILES
-    // =========================
-
-    // index.html
     if (pathname === "/") {
       const file = Bun.file("./public/index.html");
 
@@ -32,7 +27,6 @@ Bun.serve({
       });
     }
 
-    // main.js
     if (pathname === "/main.js") {
       const file = Bun.file("./public/main.js");
 
@@ -43,7 +37,6 @@ Bun.serve({
       });
     }
 
-    // main.css
     if (pathname === "/main.css") {
       const file = Bun.file("./public/main.css");
 
@@ -54,18 +47,12 @@ Bun.serve({
       });
     }
 
-    // =========================
-    // API
-    // =========================
-
-    // GET /items
     if (pathname === "/items" && method === "GET") {
       const items = todo.getItems();
 
       return Response.json(items);
     }
 
-    // POST /items
     if (pathname === "/items" && method === "POST") {
       try {
         const body = await request.json() as BodyType;
@@ -91,7 +78,6 @@ Bun.serve({
       }
     }
 
-    // DELETE /items/:id
     if (
       pathname.startsWith("/items/")
       && method === "DELETE"
@@ -105,7 +91,6 @@ Bun.serve({
       });
     }
 
-    // PUT /items/:id
     if (
       pathname.startsWith("/items/")
       && method === "PUT"
