@@ -1,84 +1,53 @@
+// Select DOM elements
 const app = document.querySelector('#app')
-const input = document.querySelector('#task-input')
-const addButton = document.querySelector('#add-button')
-const list = document.querySelector('#list')
-const itemTemplate = document.querySelector('template')
+const input = app.querySelector('#task-input')
+const addButton = app.querySelector('#add-button')
+const list = app.querySelector('#list')
+const itemTemplate = list.querySelector('template')
 
-async function loadTasks() {
+// Save tasks to local storage
+function saveToLocalStorage() {
+  const tasks = []
+  list.querySelectorAll('li').forEach(li => {
+    const title = li.querySelector('.title').textContent
+    tasks.push(title)
+  })
+  localStorage.setItem('tasks', JSON.stringify(tasks))
+}
 
-  list.innerHTML = ''
-
-  const response = await fetch('/items')
-
-  const tasks = await response.json()
-
-  tasks.forEach(task => {
-
-    const element = createTaskElement(task)
-
-    list.appendChild(element)
+// Load tasks from local storage and add them to the list
+function loadFromLocalStorage() {
+  const tasks = JSON.parse(localStorage.getItem('tasks') || '[]')
+  tasks.forEach(title => {
+    const task = createDomTask(title)
+    list.appendChild(task)
   })
 }
 
-function createTaskElement(task) {
-
-  const clone =
-    itemTemplate.content.cloneNode(true)
-
-  clone.querySelector('.title').textContent =
-    task.title
-
-  clone
-    .querySelector('.bt-delete')
-    .addEventListener('click', async () => {
-
-      await fetch(`/items/${task.id}`, {
-        method: 'DELETE'
-      })
-
-      loadTasks()
-    })
-
-  return clone
+// Create a DOM element for a task
+function createDomTask(title) {
+  const task = itemTemplate.content.cloneNode(true)
+  task.querySelector('.title').textContent = title
+  task.querySelector('.bt-delete').addEventListener('click', (e) => {
+    e.target.closest('li').remove()
+    saveToLocalStorage()
+  })
+  return task
 }
 
-async function createTask() {
-
+// Create a new task and add it to the list
+function createNewTask() {
   const title = input.value.trim()
-
   if (!title) return
-
-  await fetch('/items', {
-
-    method: 'POST',
-
-    headers: {
-      'Content-Type': 'application/json'
-    },
-
-    body: JSON.stringify({
-      title
-    })
-  })
-
+  const task = createDomTask(title)
+  list.appendChild(task)
   input.value = ''
-
-  loadTasks()
+  saveToLocalStorage()
 }
 
-addButton.addEventListener(
-  'click',
-  createTask
-)
+// Event listeners
+addButton.addEventListener('click', createNewTask)
+input.addEventListener('keypress', (e) => (e.key === 'Enter' ? createNewTask() : null))
 
-input.addEventListener(
-  'keypress',
-  (e) => {
-
-    if (e.key === 'Enter') {
-      createTask()
-    }
-  }
-)
-
-loadTasks()
+// Load tasks from local storage on page load
+loadFromLocalStorage()

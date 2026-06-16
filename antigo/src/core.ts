@@ -11,7 +11,7 @@ db.run(`
 
 const querySelectItems = db.prepare("SELECT * FROM items");
 const queryInsertItem = db.prepare(
-  "INSERT INTO items (title) VALUES (?)"
+"INSERT INTO items (title) VALUES (?)"
 );
 const queryDeleteItem = db.prepare(
   "DELETE FROM items WHERE id = ?"
@@ -23,7 +23,7 @@ const queryUpdateItem = db.prepare(
 export class TodoList {
   getItems() {
     return querySelectItems.all();
-  }
+}
 
   addItem(title: string) {
     const result = queryInsertItem.run(title);
